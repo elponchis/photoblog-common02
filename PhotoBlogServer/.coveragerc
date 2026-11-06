@@ -1,0 +1,11 @@
+[run]
+source = blog
+omit =
+    blog/migrations/*
+    blog/tests.py
+    blog/__init__.py
+    blog/admin.py
+    blog/apps.py
+
+[html]
+directory = htmlcov

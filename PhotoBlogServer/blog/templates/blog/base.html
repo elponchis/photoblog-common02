@@ -1,0 +1,46 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Web Service project web-blog</title>
+    <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css">
+    <link href='//fonts.googleapis.com/css?family=Lobster&subset=latin,latin-ext' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" href="{% static 'css/blog.css' %}">
+</head>
+<body>
+    <div class="page-header">
+        <div class="container header-bar">
+            <h1><a href="/">Web Service project web-blog</a></h1>
+            <div class="header-tools">
+                <form class="header-search" action="{% url 'post_list' %}" method="get" role="search">
+                    <input type="search" name="q" value="{{ query }}" placeholder="제목으로 찾기" aria-label="제목으로 찾기">
+                    <button type="submit" aria-label="검색">
+                        <span class="glyphicon glyphicon-search"></span>
+                    </button>
+                </form>
+                <a href="{% url 'stats' %}" class="top-menu" title="검출 통계">
+                    <span class="glyphicon glyphicon-stats"></span>
+                </a>
+                {% if user.is_authenticated %}
+                <a href="{% url 'post_new' %}" class="top-menu">
+                    <span class="glyphicon glyphicon-plus"></span>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="content container">
+        <div class="row">
+            <div class="col-md-8">
+                {% block content %}
+                {% endblock %}
+            </div>
+            <div class="col-md-4">
+                {% block sidebar %}
+                {% endblock %}
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,82 @@
+{% extends 'blog/base.html' %}
+
+{% block content %}
+<div class="stats">
+    <div class="list-head">
+        <h2 class="author-title">검출 통계</h2>
+        <a class="home-link" href="{% url 'stats_data' %}">JSON</a>
+    </div>
+
+    <div class="stat-tiles">
+        <div class="stat-tile"><span class="stat-value">{{ stats.total_posts }}</span><span class="stat-label">게시물</span></div>
+        <div class="stat-tile"><span class="stat-value">{{ stats.total_detections }}</span><span class="stat-label">검출 객체</span></div>
+        <div class="stat-tile"><span class="stat-value">{{ stats.distinct_objects }}</span><span class="stat-label">객체 종류</span></div>
+    </div>
+
+    {% if stats.objects %}
+    <h3 class="stat-heading">객체 종류별 검출 횟수</h3>
+    <div class="chart-box"><canvas id="chart-objects"></canvas></div>
+
+    <h3 class="stat-heading">최근 24시간 게시물 수</h3>
+    <div class="chart-box"><canvas id="chart-hourly"></canvas></div>
+
+    <h3 class="stat-heading">상세</h3>
+    <table class="table stat-table">
+        <thead><tr><th>객체</th><th class="num">횟수</th><th class="num">평균 신뢰도</th><th>마지막 검출</th></tr></thead>
+        <tbody>
+        {% for o in stats.objects %}
+            <tr>
+                <td><a href="{% url 'post_list' %}?q={{ o.name|urlencode }}">{{ o.name }}</a></td>
+                <td class="num">{{ o.count }}</td>
+                <td class="num">{% if o.avg_conf is not None %}{{ o.avg_conf|floatformat:2 }}{% else %}-{% endif %}</td>
+                <td>{{ o.last_seen_label }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>아직 검출 기록이 없습니다.</p>
+    {% endif %}
+</div>
+
+{{ stats|json_script:"stats-data" }}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+    (function () {
+        var data = JSON.parse(document.getElementById('stats-data').textContent);
+        if (!data.objects.length || typeof Chart === 'undefined') return;
+        var accent = '#ff9400';
+        Chart.defaults.font.family = 'inherit';
+
+        new Chart(document.getElementById('chart-objects'), {
+            type: 'bar',
+            data: {
+                labels: data.objects.map(function (o) { return o.name; }),
+                datasets: [{ data: data.objects.map(function (o) { return o.count; }), backgroundColor: accent, borderRadius: 4 }]
+            },
+            options: {
+                indexAxis: 'y', maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { x: { beginAtZero: true, ticks: { precision: 0 } } }
+            }
+        });
+
+        new Chart(document.getElementById('chart-hourly'), {
+            type: 'line',
+            data: {
+                labels: data.hourly.labels,
+                datasets: [{ data: data.hourly.counts, borderColor: accent, backgroundColor: 'rgba(255,148,0,0.15)', fill: true, tension: 0.3, pointRadius: 2 }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true, ticks: { precision: 0 } }, x: { ticks: { maxTicksLimit: 8 } } }
+            }
+        });
+    })();
+</script>
+{% endblock %}
+
+{% block sidebar %}
+    {% include 'blog/sidebar.html' %}
+{% endblock %}

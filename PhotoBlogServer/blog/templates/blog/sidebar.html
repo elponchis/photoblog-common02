@@ -1,0 +1,89 @@
+<aside class="sidebar">
+    <section class="sidebar-box">
+        <div class="sidebar-head">
+            <h3>작성자</h3>
+            {% if all_authors|length > sidebar_limit %}
+            <button type="button" class="see-all" data-dialog="dialog-authors">전체 보기</button>
+            {% endif %}
+        </div>
+        <ul class="sidebar-list">
+            <li{% if not current_author %} class="active"{% endif %}>
+                <a href="{% url 'post_list' %}">전체</a>
+            </li>
+            {% for author in top_authors %}
+            <li{% if author == current_author %} class="active"{% endif %}>
+                <a href="{% url 'author_posts' username=author.username %}">{{ author.username }}</a>
+                <span class="count">{{ author.post_count }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+    </section>
+
+    <section class="sidebar-box">
+        <div class="sidebar-head">
+            <h3>최근 글</h3>
+            {% if all_posts|length > sidebar_limit %}
+            <button type="button" class="see-all" data-dialog="dialog-posts">전체 보기</button>
+            {% endif %}
+        </div>
+        <ul class="sidebar-list">
+            {% for recent in recent_posts %}
+            <li{% if recent == post %} class="active"{% endif %}>
+                <a href="{% url 'post_detail' pk=recent.pk %}?next={{ list_url|urlencode }}">{{ recent.title }}</a>
+                <span class="count">{{ recent.published_date|date:"m-d" }}</span>
+            </li>
+            {% empty %}
+            <li>아직 글이 없습니다.</li>
+            {% endfor %}
+        </ul>
+    </section>
+</aside>
+
+<dialog id="dialog-authors" class="list-dialog">
+    <div class="list-dialog-head">
+        <h3>작성자 {{ all_authors|length }}명</h3>
+        <button type="button" class="dialog-close" aria-label="닫기">&times;</button>
+    </div>
+    <ul class="sidebar-list">
+        {% for author in all_authors %}
+        <li{% if author == current_author %} class="active"{% endif %}>
+            <a href="{% url 'author_posts' username=author.username %}">{{ author.username }}</a>
+            <span class="count">{{ author.post_count }}</span>
+        </li>
+        {% endfor %}
+    </ul>
+</dialog>
+
+<dialog id="dialog-posts" class="list-dialog">
+    <div class="list-dialog-head">
+        <h3>전체 글 {{ all_posts|length }}개</h3>
+        <button type="button" class="dialog-close" aria-label="닫기">&times;</button>
+    </div>
+    <ul class="sidebar-list">
+        {% for item in all_posts %}
+        <li{% if item == post %} class="active"{% endif %}>
+            <a href="{% url 'post_detail' pk=item.pk %}?next={{ list_url|urlencode }}">{{ item.title }}</a>
+            <span class="count">{{ item.author_name }} · {{ item.published_date|date:"Y-m-d" }}</span>
+        </li>
+        {% endfor %}
+    </ul>
+</dialog>
+
+<script>
+    document.querySelectorAll('.see-all').forEach(function (button) {
+        button.addEventListener('click', function () {
+            document.getElementById(button.dataset.dialog).showModal();
+        });
+    });
+    document.querySelectorAll('.list-dialog').forEach(function (dialog) {
+        dialog.querySelector('.dialog-close').addEventListener('click', function () {
+            dialog.close();
+        });
+        // 바깥 어두운 영역을 누르면 닫는다
+        dialog.addEventListener('click', function (event) {
+            if (event.target === dialog) {
+                dialog.close();
+            }
+        });
+    });
+</script>

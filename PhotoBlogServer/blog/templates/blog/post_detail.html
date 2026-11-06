@@ -1,0 +1,27 @@
+{% extends 'blog/base.html' %}
+
+{% block content %}
+<a class="back-link" href="{{ list_url }}">&larr; 목록으로</a>
+<div class="post">
+    {% if post.published_date %}
+    <div class="date">
+        {{ post.published_date }} ·
+        <a href="{% url 'author_posts' username=post.author_name %}">{{ post.author_name }}</a>
+    </div>
+    {% endif %}
+    {% if user.is_authenticated %}
+    <a class="btn btn-default" href="{% url 'post_edit' pk=post.pk %}">
+        <span class="glyphicon glyphicon-pencil"></span>
+    </a>
+    {% endif %}
+    <h1>{{ post.title }}</h1>
+    {% if post.image %}
+    <img src="{{ post.image.url }}" class="post-image" alt="{{ post.title }}">
+    {% endif %}
+    <p>{{ post.text|linebreaksbr }}</p>
+</div>
+{% endblock %}
+
+{% block sidebar %}
+    {% include 'blog/sidebar.html' %}
+{% endblock %}
