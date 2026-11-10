@@ -64,6 +64,13 @@
         android:textColor="#888888"
         android:text="" />
 
+    <com.google.android.material.materialswitch.MaterialSwitch
+        android:id="@+id/switchWatch"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="16dp"
+        android:text="실시간 검출 알림" />
+
     <EditText
         android:id="@+id/editSearch"
         android:layout_width="match_parent"

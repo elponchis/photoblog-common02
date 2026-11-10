@@ -1,13 +1,17 @@
 package com.example.photoviewer;
 
+import android.Manifest;
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.OpenableColumns;
 import android.text.Editable;
@@ -26,12 +30,15 @@ import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
+
+import com.google.android.material.materialswitch.MaterialSwitch;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -85,6 +92,10 @@ public class MainActivity extends AppCompatActivity {
     private ImageView dialogPreview;
     private TextView dialogFileName;
     private ActivityResultLauncher<String> imagePicker;
+
+    private MaterialSwitch switchWatch;
+    private ActivityResultLauncher<String> notifyPermission;
+    private String pendingOpenDate;
 
     private CloadImage taskDownload;
     private PutPost taskUpload;
@@ -155,7 +166,67 @@ public class MainActivity extends AppCompatActivity {
                     }
                 });
 
+        notifyPermission = registerForActivityResult(
+                new ActivityResultContracts.RequestPermission(),
+                granted -> {
+                    if (granted) {
+                        setWatching(true);
+                    } else {
+                        switchWatch.setChecked(false);
+                        toast("알림 권한이 없으면 검출 알림을 받을 수 없습니다");
+                    }
+                });
+
+        switchWatch = findViewById(R.id.switchWatch);
+        switchWatch.setChecked(getSharedPreferences(PREFS, MODE_PRIVATE)
+                .getBoolean(DetectionWatchService.KEY_WATCH, false));
+        switchWatch.setOnCheckedChangeListener((b, checked) -> {
+            if (!b.isPressed()) {
+                return;
+            }
+            if (checked && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                    && ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                notifyPermission.launch(Manifest.permission.POST_NOTIFICATIONS);
+                return;
+            }
+            setWatching(checked);
+        });
+
         loadSettings();
+        if (switchWatch.isChecked()) {
+            DetectionWatchService.start(this);
+        }
+        handleOpenPost(getIntent());
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        handleOpenPost(intent);
+    }
+
+    // 검출 알림을 누르면 목록을 동기화한 뒤 그 게시물 상세를 연다
+    private void handleOpenPost(Intent intent) {
+        String date = intent == null ? null : intent.getStringExtra(DetectionWatchService.EXTRA_POST_DATE);
+        if (date == null) {
+            return;
+        }
+        intent.removeExtra(DetectionWatchService.EXTRA_POST_DATE);
+        pendingOpenDate = date;
+        onClickDownload(null);
+    }
+
+    private void setWatching(boolean on) {
+        getSharedPreferences(PREFS, MODE_PRIVATE).edit()
+                .putBoolean(DetectionWatchService.KEY_WATCH, on).apply();
+        if (on) {
+            DetectionWatchService.start(this);
+            toast("검출 알림을 켰습니다. 앱을 닫아도 알림이 옵니다");
+        } else {
+            DetectionWatchService.stop(this);
+            toast("검출 알림을 껐습니다");
+        }
     }
 
     private void loadSettings() {
@@ -173,6 +244,11 @@ public class MainActivity extends AppCompatActivity {
                 .putString(KEY_TOKEN, newToken)
                 .apply();
         loadSettings();
+        // 감시 중이면 바뀐 서버로 다시 시작
+        if (switchWatch.isChecked()) {
+            DetectionWatchService.stop(this);
+            DetectionWatchService.start(this);
+        }
     }
 
     private void saveAuthor(String author) {
@@ -474,6 +550,16 @@ public class MainActivity extends AppCompatActivity {
                 textView.setText("불러올 이미지가 없습니다.");
             }
             applyFilter();
+
+            if (pendingOpenDate != null) {
+                for (PostItem item : allPosts) {
+                    if (pendingOpenDate.equals(item.getPublishedDate())) {
+                        showDetail(item);
+                        break;
+                    }
+                }
+                pendingOpenDate = null;
+            }
         }
     }
 
