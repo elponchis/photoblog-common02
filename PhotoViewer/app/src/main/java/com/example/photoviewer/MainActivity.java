@@ -553,7 +553,7 @@ public class MainActivity extends AppCompatActivity {
 
             if (pendingOpenDate != null) {
                 for (PostItem item : allPosts) {
-                    if (pendingOpenDate.equals(item.getPublishedDate())) {
+                    if (pendingOpenDate.equals(item.getRawPublishedDate())) {
                         showDetail(item);
                         break;
                     }

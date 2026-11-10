@@ -30,6 +30,10 @@ public class PostItem {
         return text;
     }
 
+    public String getRawPublishedDate() {
+        return publishedDate;
+    }
+
     public String getPublishedDate() {
         if (publishedDate == null || publishedDate.length() < 10) {
             return "";
